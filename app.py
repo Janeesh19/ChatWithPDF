@@ -55,10 +55,12 @@ def main():
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        # Each message is a dictionary: {"role": "user" or "assistant", "content": "…"}
+        # Each message is a dict: {"role": "user" or "assistant", "content": "…"}
         st.session_state.messages = []
-    
-    # ─── SIDEBAR: Setup, File Upload, Model Selection, & Clear Chat History ──────────────
+    if "chat_history_archive" not in st.session_state:
+        st.session_state.chat_history_archive = []
+
+    # ─── SIDEBAR: Setup, File Upload, Model Selection, & Archived Chat History ──────────────
     with st.sidebar:
         st.header("Setup")
         model_options = {
@@ -84,55 +86,53 @@ def main():
             else:
                 st.warning("Please upload at least one PDF.")
         if st.button("Clear Chat History"):
-            st.session_state.messages = []
-            if st.session_state.conversation is not None:
-                st.session_state.conversation.memory.clear()
+            st.session_state.chat_history_archive = []
             st.rerun()
-    
-    # ─── MAIN CHAT INTERFACE ──────────────────────────────────────────────────────────────
+        if st.session_state.chat_history_archive:
+            st.subheader("Chat History Archive")
+            for idx, conv in enumerate(st.session_state.chat_history_archive):
+                with st.expander(f"Conversation {idx + 1}"):
+                    for msg in conv:
+                        st.markdown(f"**{msg['role'].capitalize()}:** {msg['content']}")
+
     st.title("Chat with your assistant")
     
-    # Display previous conversation messages.
-    # If available, use the new st.chat_message component for a ChatGPT-like UI.
+    # ─── DISPLAY PREVIOUS MESSAGES ─────────────────────────────────────────────
+    # Use st.chat_message if available; otherwise fallback to markdown.
     if hasattr(st, "chat_message"):
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
     else:
-        # Fallback display if the new chat components are not available.
         for msg in st.session_state.messages:
             st.markdown(f"**{msg['role'].capitalize()}:** {msg['content']}")
-    
-    # Chat input area with a Clear Chat button placed either next to or below the input.
-    if hasattr(st, "chat_input"):
-        # Use the new chat_input if available.
-        user_input = st.chat_input("Type your message here")
-        # Place the Clear Chat button immediately below the input.
-        if st.button("Clear Chat", key="clear_chat_below"):
+
+    # ─── CHAT INPUT AREA WITH CLEAR BUTTON TO THE RIGHT ─────────────────────────
+    # Arrange the input box and Clear Chat button in two columns.
+    cols = st.columns([4, 1])
+    with cols[0]:
+        # Use st.chat_input if available; otherwise fallback to st.text_input.
+        if hasattr(st, "chat_input"):
+            user_input = st.chat_input("Type your message here")
+        else:
+            user_input = st.text_input("Type your message here")
+    with cols[1]:
+        if st.button("Clear Chat", key="clear_chat_btn"):
+            # Archive the current conversation if it exists.
+            if st.session_state.messages:
+                # Append a copy of the current messages list.
+                st.session_state.chat_history_archive.append(st.session_state.messages.copy())
             st.session_state.messages = []
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-    else:
-        # Fallback: arrange input and clear button side-by-side using columns.
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            user_input = st.text_input("Type your message here")
-        with col2:
-            if st.button("Clear Chat"):
-                st.session_state.messages = []
-                if st.session_state.conversation is not None:
-                    st.session_state.conversation.memory.clear()
-                st.rerun()
-    
-    # Process the user input.
+
+    # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
     if user_input:
-        # Append the user's message.
         st.session_state.messages.append({"role": "user", "content": user_input})
         if st.session_state.conversation is not None:
             with st.spinner("Assistant is typing..."):
                 response = st.session_state.conversation({"question": user_input})
-                # Retrieve the latest assistant response.
                 if response.get("chat_history"):
                     latest_message = response["chat_history"][-1]
                     st.session_state.messages.append({

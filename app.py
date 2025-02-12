@@ -7,10 +7,14 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from htmlTemplates import css  # Ensure you have your CSS file with your styles
+from htmlTemplates import css  # Ensure you have your custom CSS in this file
 
-# Set your OpenAI API key from Streamlit secrets.
+# Set your OpenAI API key (from Streamlit secrets).
 os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
+
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
 
 def get_pdf_text(pdf_docs):
     """Extract text from a list of PDF files."""
@@ -23,13 +27,13 @@ def get_pdf_text(pdf_docs):
 
 def get_text_chunks(text):
     """Split text into manageable chunks."""
-    text_splitter = CharacterTextSplitter(
+    splitter = CharacterTextSplitter(
         separator="\n",
         chunk_size=1000,
         chunk_overlap=200,
         length_function=len
     )
-    return text_splitter.split_text(text)
+    return splitter.split_text(text)
 
 def get_vectorstore(text_chunks):
     """Create a vector store from text chunks."""
@@ -63,21 +67,27 @@ def message_to_dict(msg):
         role = "unknown"
     return {"role": role, "content": msg.content}
 
+# ------------------------------------------------------------------------------
+# Main App
+# ------------------------------------------------------------------------------
+
 def main():
-    # Set up the page title and apply custom CSS.
+    # Set up the page title and inject custom CSS.
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
     
-    # Initialize session state variables.
+    # Initialize session state variables if not already set.
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        # Each message is stored as a dict with keys: "role" and "content".
+        # Each message is stored as a dictionary with keys "role" and "content".
         st.session_state.messages = []
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
 
-    # ─── SIDEBAR: Setup, Model Selection, and PDF Upload ──────────────────────────────
+    # ------------------------------------------------------------------------------
+    # Sidebar: Model Selection, PDF Upload, and Chat History Archive
+    # ------------------------------------------------------------------------------
     with st.sidebar:
         st.header("Setup")
         # Define two distinct model options.
@@ -102,11 +112,9 @@ def main():
                     st.rerun()
             else:
                 st.warning("Please upload at least one PDF.")
-        # Button to clear the archived chat history.
         if st.button("Clear Chat History"):
             st.session_state.chat_history_archive = []
             st.rerun()
-        # Display archived conversations.
         if st.session_state.chat_history_archive:
             st.subheader("Chat History Archive")
             for idx, conv in enumerate(st.session_state.chat_history_archive):
@@ -115,28 +123,48 @@ def main():
                         msg_dict = message_to_dict(msg)
                         st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
 
+    # ------------------------------------------------------------------------------
+    # Main Chat Interface
+    # ------------------------------------------------------------------------------
     st.title("Chat with your assistant")
     
-   cols = st.columns([4, 1])
+    # Display previous conversation messages.
+    # Use st.chat_message if available (for a ChatGPT-like UI), else fallback.
+    if hasattr(st, "chat_message"):
+        for msg in st.session_state.messages:
+            msg_dict = message_to_dict(msg)
+            with st.chat_message(msg_dict["role"]):
+                st.markdown(msg_dict["content"])
+    else:
+        for msg in st.session_state.messages:
+            msg_dict = message_to_dict(msg)
+            st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
+    
+    # ------------------------------------------------------------------------------
+    # Chat Input Area with a Clear Chat Button Placed Next to It
+    # ------------------------------------------------------------------------------
+    cols = st.columns([4, 1])
     with cols[0]:
         # Use st.chat_input if available; otherwise fallback to st.text_input.
         if hasattr(st, "chat_input"):
             user_input = st.chat_input("Type your message here")
         else:
-            user_input = st.text_input("Type your message here")
+            user_input = st.text_input("Type your message here", key="user_input")
     with cols[1]:
         if st.button("Clear Chat", key="clear_chat_btn"):
             # Archive the current conversation if it exists.
             if st.session_state.messages:
-                # Append a copy of the current messages list.
                 st.session_state.chat_history_archive.append(st.session_state.messages.copy())
             st.session_state.messages = []
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-
-    # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
+    
+    # ------------------------------------------------------------------------------
+    # Process User Input
+    # ------------------------------------------------------------------------------
     if user_input:
+        # Append the user's message.
         st.session_state.messages.append({"role": "user", "content": user_input})
         if st.session_state.conversation is not None:
             with st.spinner("Assistant is typing..."):

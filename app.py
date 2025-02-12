@@ -23,7 +23,10 @@ def get_pdf_text(pdf_docs):
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
-        separator="\n", chunk_size=1000, chunk_overlap=200, length_function=len
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len
     )
     chunks = text_splitter.split_text(text)
     return chunks
@@ -39,7 +42,9 @@ def get_conversation_chain(vectorstore, model_name):
     llm = ChatOpenAI(model_name=model_name)
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm, retriever=vectorstore.as_retriever(), memory=memory
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory
     )
     return conversation_chain
 
@@ -75,9 +80,8 @@ def main():
     if user_question:
         handle_userinput(user_question)
 
-     with st.sidebar:
-
-         model_options = {
+    with st.sidebar:
+        model_options = {
             "GPT-4": "gpt-4",
             "GPT-4-o": "gpt-4",       # Adjust if you have different settings for '4o'
             "GPT-4-mini": "gpt-4-mini", # Note: ensure this model is available as intended
@@ -100,7 +104,9 @@ def main():
                 vectorstore = get_vectorstore(text_chunks)
 
                 # Initialise the conversation chain using the selected GPT model
-                st.session_state.conversation = get_conversation_chain(vectorstore, model_options[model_choice])
+                st.session_state.conversation = get_conversation_chain(
+                    vectorstore, model_options[model_choice]
+                )
 
 
 if __name__ == "__main__":

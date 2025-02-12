@@ -11,7 +11,6 @@ import os
 
 os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
 
-
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -19,7 +18,6 @@ def get_pdf_text(pdf_docs):
         for page in pdf_reader.pages:
             text += page.extract_text()
     return text
-
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
@@ -31,12 +29,10 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-
 def get_vectorstore(text_chunks):
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
-
 
 def get_conversation_chain(vectorstore, model_name):
     llm = ChatOpenAI(model_name=model_name)
@@ -48,46 +44,55 @@ def get_conversation_chain(vectorstore, model_name):
     )
     return conversation_chain
 
-
 def main():
     st.set_page_config(page_title="Chat with PDF :books:", page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
 
-    # Initialise session state variables if not already set
+    # Initialise session state variables if not already set.
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
+    # Initialise a counter for the text input key.
+    if "text_input_key" not in st.session_state:
+        st.session_state.text_input_key = 0
 
     st.header("Chat with PDF :books:")
 
-    # Text input for the user question, using a key so its value can be cleared.
-    user_question = st.text_input("Ask a question about your documents:", key="user_question")
-
-    # Clear Chat button placed next to the input.
-    if st.button("Clear Chat"):
-        # Archive the current conversation (if any) in the sidebar.
-        if st.session_state.chat_history:
-            st.session_state.chat_history_archive.append(st.session_state.chat_history)
-        st.session_state.chat_history = []
-        if st.session_state.conversation is not None:
-            # Clear the conversation memory using the clear() method.
-            st.session_state.conversation.memory.clear()
-        # Clear the text input field.
-        st.session_state.user_question = ""
-        st.rerun()  # Rerun the app to update the UI
+    # Place the Clear Chat button and text input in a horizontal layout.
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("Clear Chat"):
+            # Archive the current conversation (if any)
+            if st.session_state.chat_history:
+                st.session_state.chat_history_archive.append(st.session_state.chat_history)
+            st.session_state.chat_history = []
+            if st.session_state.conversation is not None:
+                # Clear the conversation memory using the clear() method.
+                st.session_state.conversation.memory.clear()
+            # Increment the text input key so a new widget is created.
+            st.session_state.text_input_key += 1
+            st.rerun()
+    with col2:
+        # Use a dynamic key for the text input so that it resets when the counter changes.
+        user_question = st.text_input(
+            "Ask a question about your documents:",
+            key=f"user_question_{st.session_state.text_input_key}"
+        )
 
     # Container for chat messages (displayed just below the input)
     chat_container = st.container()
 
-    # If the text input isn't empty, get a response and display the conversation.
+    # If a new question is submitted, get a response and display the conversation.
     if user_question:
         response = st.session_state.conversation({"question": user_question})
         st.session_state.chat_history = response["chat_history"]
 
         with chat_container:
+            # Iterate through the conversation history and display messages.
+            # Even-indexed messages are from the user; odd-indexed messages are from the bot.
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
                     st.markdown(user_template.replace("{{MSG}}", message.content),
@@ -136,7 +141,6 @@ def main():
                         else:
                             st.markdown(bot_template.replace("{{MSG}}", message.content),
                                         unsafe_allow_html=True)
-
 
 if __name__ == "__main__":
     main()

@@ -7,7 +7,7 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from htmlTemplates import css  # Ensure you have your custom CSS if needed
+from htmlTemplates import css  # Optional: your custom CSS
 
 # Set your OpenAI API key from Streamlit secrets.
 os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
@@ -72,15 +72,15 @@ def message_to_dict(msg):
 
 def main():
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
-    
-    # Inject custom CSS to ensure the input box remains fixed at the bottom.
+
+    # Inject custom CSS to reserve bottom space and fix the chat input area.
     st.markdown("""
     <style>
-      /* Ensure the main container has extra bottom padding */
+      /* Increase bottom padding for the main container */
       .reportview-container .main .block-container {
           padding-bottom: 140px;
       }
-      /* Fixed footer for chat input */
+      /* Fixed footer styling */
       .fixed-footer {
           position: fixed;
           left: 0;
@@ -93,24 +93,33 @@ def main():
       }
     </style>
     """, unsafe_allow_html=True)
-    
-    # Optionally include external CSS if provided.
+
+    # Inject JavaScript to scroll to the bottom on page load.
+    st.markdown("""
+    <script>
+      window.onload = function() {
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+    </script>
+    """, unsafe_allow_html=True)
+
+    # Optionally include external CSS.
     st.markdown(css, unsafe_allow_html=True)
-    
-    # Initialize session state variables if they don't exist.
+
+    # Initialize session state variables.
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        st.session_state.messages = []  # List of dicts: {"role": "user"/"assistant", "content": "…"}
+        st.session_state.messages = []  # List of {"role": "user"/"assistant", "content": "..."}
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
-    
+
     # ------------------------------------------------------------------------------
     # Sidebar: Model Selection, PDF Upload, and Chat History Archive
     # ------------------------------------------------------------------------------
     with st.sidebar:
         st.header("Setup")
-        # Define two different model options.
+        # Define available model options.
         model_options = {
             "GPT-4": "gpt-4",
             "GPT-3.5 Turbo": "gpt-3.5-turbo"
@@ -124,7 +133,6 @@ def main():
                     raw_text = get_pdf_text(pdf_docs)
                     text_chunks = get_text_chunks(raw_text)
                     vectorstore = get_vectorstore(text_chunks)
-                    # Initialize the conversation chain with the selected model.
                     st.session_state.conversation = get_conversation_chain(
                         vectorstore, model_options[model_choice]
                     )
@@ -142,13 +150,11 @@ def main():
                     for msg in conv:
                         msg_dict = message_to_dict(msg)
                         st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-    
+
     # ------------------------------------------------------------------------------
-    # Main Chat Interface
+    # Main Chat Interface: Display Messages
     # ------------------------------------------------------------------------------
     st.title("Chat with your assistant")
-    
-    # Display previous messages.
     if hasattr(st, "chat_message"):
         for msg in st.session_state.messages:
             msg_dict = message_to_dict(msg)
@@ -158,13 +164,14 @@ def main():
         for msg in st.session_state.messages:
             msg_dict = message_to_dict(msg)
             st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-    
+
     # ------------------------------------------------------------------------------
     # Fixed Footer: Chat Input Area and Clear Chat Button
     # ------------------------------------------------------------------------------
     st.markdown('<div class="fixed-footer">', unsafe_allow_html=True)
     cols = st.columns([4, 1])
     with cols[0]:
+        # Use st.chat_input if available; otherwise fallback to st.text_input.
         if hasattr(st, "chat_input"):
             user_input = st.chat_input("Type your message here")
         else:
@@ -178,7 +185,7 @@ def main():
                 st.session_state.conversation.memory.clear()
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
     # ------------------------------------------------------------------------------
     # Process User Input
     # ------------------------------------------------------------------------------

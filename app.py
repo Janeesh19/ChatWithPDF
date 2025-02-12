@@ -117,20 +117,9 @@ def main():
 
     st.title("Chat with your assistant")
     
-    # ─── DISPLAY PREVIOUS MESSAGES ─────────────────────────────────────────────
-    # Use st.chat_message if available (Streamlit's new chat UI), else fallback.
-    if hasattr(st, "chat_message"):
-        for msg in st.session_state.messages:
-            msg_dict = message_to_dict(msg)
-            with st.chat_message(msg_dict["role"]):
-                st.markdown(msg_dict["content"])
-    else:
-        for msg in st.session_state.messages:
-            msg_dict = message_to_dict(msg)
-            st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-
-    cols = st.columns([4, 1])
+   cols = st.columns([4, 1])
     with cols[0]:
+        # Use st.chat_input if available; otherwise fallback to st.text_input.
         if hasattr(st, "chat_input"):
             user_input = st.chat_input("Type your message here")
         else:
@@ -139,12 +128,13 @@ def main():
         if st.button("Clear Chat", key="clear_chat_btn"):
             # Archive the current conversation if it exists.
             if st.session_state.messages:
+                # Append a copy of the current messages list.
                 st.session_state.chat_history_archive.append(st.session_state.messages.copy())
             st.session_state.messages = []
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-    
+
     # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})

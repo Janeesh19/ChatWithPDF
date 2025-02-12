@@ -45,7 +45,8 @@ def get_conversation_chain(vectorstore, model_name):
     return conversation_chain
 
 def main():
-    st.set_page_config(page_title="Chat with your assistant")
+    # Update the page title and icon.
+    st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
 
     # Initialise session state variables if not already set.
@@ -58,11 +59,12 @@ def main():
     if "text_input_key" not in st.session_state:
         st.session_state.text_input_key = 0
 
-    st.header("Chat with PDF :books:")
+    # Update the header.
+    st.header("Chat with your assistant")
 
     # Text input for the user's question with a dynamic key.
     user_question = st.text_input(
-        "Ask a question about your documents:",
+        "Ask your assistant a question:",
         key=f"user_question_{st.session_state.text_input_key}"
     )
 
@@ -86,7 +88,7 @@ def main():
         response = st.session_state.conversation({"question": user_question})
         st.session_state.chat_history = response["chat_history"]
 
-    # Group the conversation history into pairs (user question and bot response)
+    # Group the conversation history into pairs (user question and bot response).
     conversation_pairs = []
     history = st.session_state.chat_history
     i = 0

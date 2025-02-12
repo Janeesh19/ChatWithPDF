@@ -37,7 +37,7 @@ def get_vectorstore(text_chunks):
     return FAISS.from_texts(texts=text_chunks, embedding=embeddings)
 
 def get_conversation_chain(vectorstore, model_name):
-    """Initialise a conversation chain with retrieval memory."""
+    """Initialize a conversation chain with retrieval memory."""
     llm = ChatOpenAI(model_name=model_name)
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     return ConversationalRetrievalChain.from_llm(
@@ -54,7 +54,6 @@ def message_to_dict(msg):
     """
     if isinstance(msg, dict):
         return msg
-    # For HumanMessage and AIMessage, we use the class name to decide the role.
     class_name = msg.__class__.__name__
     if class_name == "HumanMessage":
         role = "user"
@@ -65,26 +64,25 @@ def message_to_dict(msg):
     return {"role": role, "content": msg.content}
 
 def main():
-    # Set up the page title and inject CSS.
+    # Set up the page title and apply custom CSS.
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
     
-    # Initialise session state variables.
+    # Initialize session state variables.
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        # Each message will be stored as a dictionary with keys: "role" and "content".
+        # Each message is stored as a dict with keys: "role" and "content".
         st.session_state.messages = []
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
 
-    # ─── SIDEBAR: Setup, File Upload, Model Selection, & Archived Chat History ──────────────
+    # ─── SIDEBAR: Setup, Model Selection, and PDF Upload ──────────────────────────────
     with st.sidebar:
         st.header("Setup")
+        # Define two distinct model options.
         model_options = {
             "GPT-4": "gpt-4",
-            "GPT-4-o": "gpt-4",
-            "GPT-4-mini": "gpt-4-mini",
             "GPT-3.5 Turbo": "gpt-3.5-turbo"
         }
         model_choice = st.selectbox("Select GPT Model", list(model_options.keys()))
@@ -96,6 +94,7 @@ def main():
                     raw_text = get_pdf_text(pdf_docs)
                     text_chunks = get_text_chunks(raw_text)
                     vectorstore = get_vectorstore(text_chunks)
+                    # Initialize the conversation chain with the selected model.
                     st.session_state.conversation = get_conversation_chain(
                         vectorstore, model_options[model_choice]
                     )
@@ -103,9 +102,11 @@ def main():
                     st.rerun()
             else:
                 st.warning("Please upload at least one PDF.")
+        # Button to clear the archived chat history.
         if st.button("Clear Chat History"):
             st.session_state.chat_history_archive = []
             st.rerun()
+        # Display archived conversations.
         if st.session_state.chat_history_archive:
             st.subheader("Chat History Archive")
             for idx, conv in enumerate(st.session_state.chat_history_archive):
@@ -113,11 +114,11 @@ def main():
                     for msg in conv:
                         msg_dict = message_to_dict(msg)
                         st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-    
+
     st.title("Chat with your assistant")
     
     # ─── DISPLAY PREVIOUS MESSAGES ─────────────────────────────────────────────
-    # Use st.chat_message if available; otherwise fallback to markdown.
+    # Use st.chat_message if available (Streamlit's new chat UI), else fallback.
     if hasattr(st, "chat_message"):
         for msg in st.session_state.messages:
             msg_dict = message_to_dict(msg)
@@ -127,11 +128,10 @@ def main():
         for msg in st.session_state.messages:
             msg_dict = message_to_dict(msg)
             st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-    
+
     # ─── CHAT INPUT AREA WITH CLEAR BUTTON NEXT TO IT ─────────────────────────
     cols = st.columns([4, 1])
     with cols[0]:
-        # Use st.chat_input if available; otherwise fallback to st.text_input.
         if hasattr(st, "chat_input"):
             user_input = st.chat_input("Type your message here")
         else:
@@ -145,7 +145,7 @@ def main():
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-    
+
     # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -154,7 +154,6 @@ def main():
                 response = st.session_state.conversation({"question": user_input})
                 if response.get("chat_history"):
                     latest_message = response["chat_history"][-1]
-                    # Append as a dictionary.
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": latest_message.content

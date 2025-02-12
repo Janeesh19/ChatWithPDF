@@ -66,7 +66,7 @@ def main():
         key=f"user_question_{st.session_state.text_input_key}"
     )
 
-    # Clear Chat button placed immediately below the input.
+    # Clear Chat button placed immediately below the text input.
     if st.button("Clear Chat"):
         # Archive the current conversation if there is any.
         if st.session_state.chat_history:
@@ -81,19 +81,32 @@ def main():
     # Container for chat messages (displayed below the Clear Chat button).
     chat_container = st.container()
 
-    # If a new question is provided, process it and display the conversation.
+    # If a new question is provided, process it and update the conversation history.
     if user_question:
         response = st.session_state.conversation({"question": user_question})
         st.session_state.chat_history = response["chat_history"]
 
-        with chat_container:
-            for i, message in enumerate(st.session_state.chat_history):
-                if i % 2 == 0:
-                    st.markdown(user_template.replace("{{MSG}}", message.content),
-                                unsafe_allow_html=True)
-                else:
-                    st.markdown(bot_template.replace("{{MSG}}", message.content),
-                                unsafe_allow_html=True)
+    # Group the conversation history into pairs (user question and bot response)
+    conversation_pairs = []
+    history = st.session_state.chat_history
+    i = 0
+    while i < len(history):
+        if i + 1 < len(history):
+            conversation_pairs.append((history[i], history[i + 1]))
+            i += 2
+        else:
+            # In case there's an unmatched message (e.g. if conversation hasn't finished the pair)
+            conversation_pairs.append((history[i], None))
+            i += 1
+
+    # Display the conversation pairs in reverse order (latest at the top)
+    with chat_container:
+        for user_msg, bot_msg in reversed(conversation_pairs):
+            st.markdown(user_template.replace("{{MSG}}", user_msg.content),
+                        unsafe_allow_html=True)
+            if bot_msg is not None:
+                st.markdown(bot_template.replace("{{MSG}}", bot_msg.content),
+                            unsafe_allow_html=True)
 
     # Sidebar for model selection, file uploading, and chat history archive.
     with st.sidebar:
@@ -128,12 +141,21 @@ def main():
             st.subheader("Chat History Archive")
             for idx, conv in enumerate(st.session_state.chat_history_archive):
                 with st.expander(f"Conversation {idx + 1}"):
-                    for j, message in enumerate(conv):
-                        if j % 2 == 0:
-                            st.markdown(user_template.replace("{{MSG}}", message.content),
-                                        unsafe_allow_html=True)
+                    # Group each archived conversation into pairs before displaying.
+                    archived_pairs = []
+                    i = 0
+                    while i < len(conv):
+                        if i + 1 < len(conv):
+                            archived_pairs.append((conv[i], conv[i + 1]))
+                            i += 2
                         else:
-                            st.markdown(bot_template.replace("{{MSG}}", message.content),
+                            archived_pairs.append((conv[i], None))
+                            i += 1
+                    for user_msg, bot_msg in archived_pairs:
+                        st.markdown(user_template.replace("{{MSG}}", user_msg.content),
+                                    unsafe_allow_html=True)
+                        if bot_msg is not None:
+                            st.markdown(bot_template.replace("{{MSG}}", bot_msg.content),
                                         unsafe_allow_html=True)
 
 if __name__ == "__main__":

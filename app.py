@@ -78,7 +78,7 @@ def main():
         st.session_state.text_input_key += 1
         st.rerun()
 
-    # Container for chat messages (displayed below the Clear Chat button).
+    # Container for chat messages.
     chat_container = st.container()
 
     # If a new question is provided, process it and update the conversation history.
@@ -95,11 +95,11 @@ def main():
             conversation_pairs.append((history[i], history[i + 1]))
             i += 2
         else:
-            # In case there's an unmatched message (e.g. if conversation hasn't finished the pair)
+            # In case there's an unmatched message.
             conversation_pairs.append((history[i], None))
             i += 1
 
-    # Display the conversation pairs in reverse order (latest at the top)
+    # Display the conversation pairs in reverse order (latest at the top).
     with chat_container:
         for user_msg, bot_msg in reversed(conversation_pairs):
             st.markdown(user_template.replace("{{MSG}}", user_msg.content),
@@ -136,6 +136,11 @@ def main():
                 )
                 st.rerun()
 
+        # Clear Chat History button to clear the archived history.
+        if st.button("Clear Chat History"):
+            st.session_state.chat_history_archive = []
+            st.rerun()
+
         # Display the archived chat history in the sidebar.
         if st.session_state.chat_history_archive:
             st.subheader("Chat History Archive")
@@ -143,14 +148,14 @@ def main():
                 with st.expander(f"Conversation {idx + 1}"):
                     # Group each archived conversation into pairs before displaying.
                     archived_pairs = []
-                    i = 0
-                    while i < len(conv):
-                        if i + 1 < len(conv):
-                            archived_pairs.append((conv[i], conv[i + 1]))
-                            i += 2
+                    j = 0
+                    while j < len(conv):
+                        if j + 1 < len(conv):
+                            archived_pairs.append((conv[j], conv[j + 1]))
+                            j += 2
                         else:
-                            archived_pairs.append((conv[i], None))
-                            i += 1
+                            archived_pairs.append((conv[j], None))
+                            j += 1
                     for user_msg, bot_msg in archived_pairs:
                         st.markdown(user_template.replace("{{MSG}}", user_msg.content),
                                     unsafe_allow_html=True)

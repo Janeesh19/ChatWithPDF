@@ -45,7 +45,7 @@ def get_conversation_chain(vectorstore, model_name):
     return conversation_chain
 
 def main():
-    st.set_page_config(page_title="Chat with PDF :books:", page_icon=":books:")
+    st.set_page_config(page_title="Chat with your assistant")
     st.write(css, unsafe_allow_html=True)
 
     # Initialise session state variables if not already set.

@@ -63,17 +63,18 @@ def main():
 
     st.header("Chat with PDF :books:")
 
-    # Text input for the question
+    # Text input for user question
     user_question = st.text_input("Ask a question about your documents:")
 
-    # Clear Chat button placed right next to the input.
+    # Clear Chat button placed next to the input.
     if st.button("Clear Chat"):
         # Archive the current conversation (if any)
         if st.session_state.chat_history:
             st.session_state.chat_history_archive.append(st.session_state.chat_history)
         st.session_state.chat_history = []
         if st.session_state.conversation is not None:
-            st.session_state.conversation.memory.chat_history = []
+            # Clear the conversation memory using the clear() method.
+            st.session_state.conversation.memory.clear()
         st.experimental_rerun()  # Rerun to update the UI
 
     # Container for chat messages (displayed just below the input)
@@ -85,6 +86,8 @@ def main():
         st.session_state.chat_history = response["chat_history"]
 
         with chat_container:
+            # Iterate through the conversation history and display messages.
+            # Even-indexed messages are assumed to be from the user, odd-indexed from the bot.
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
                     st.markdown(user_template.replace("{{MSG}}", message.content),
@@ -97,8 +100,8 @@ def main():
     with st.sidebar:
         model_options = {
             "GPT-4": "gpt-4",
-            "GPT-4-o": "gpt-4",        # Adjust if you have different settings for '4o'
-            "GPT-4-mini": "gpt-4-mini",  # Note: ensure this model is available as intended
+            "GPT-4-o": "gpt-4",       # Adjust if you have different settings for '4o'
+            "GPT-4-mini": "gpt-4-mini", # Note: ensure this model is available as intended
             "GPT-3.5 Turbo": "gpt-3.5-turbo"
         }
         model_choice = st.selectbox("Select GPT Model", list(model_options.keys()))

@@ -104,4 +104,39 @@ def main():
         model_choice = st.selectbox("Select GPT Model", list(model_options.keys()))
         st.subheader("Your documents")
         pdf_docs = st.file_uploader(
-    
+            "Upload your PDFs here and click on 'Add Data'",
+            accept_multiple_files=True
+        )
+        if st.button("Add Data"):
+            with st.spinner("Adding Data..."):
+                # Extract text from PDFs
+                raw_text = get_pdf_text(pdf_docs)
+
+                # Split the text into chunks
+                text_chunks = get_text_chunks(raw_text)
+
+                # Create the vector store
+                vectorstore = get_vectorstore(text_chunks)
+
+                # Initialise the conversation chain using the selected GPT model
+                st.session_state.conversation = get_conversation_chain(
+                    vectorstore, model_options[model_choice]
+                )
+                st.experimental_rerun()
+
+        # Display the archived chat history in the sidebar
+        if st.session_state.chat_history_archive:
+            st.subheader("Chat History Archive")
+            for idx, conv in enumerate(st.session_state.chat_history_archive):
+                with st.expander(f"Conversation {idx + 1}"):
+                    for j, message in enumerate(conv):
+                        if j % 2 == 0:
+                            st.markdown(user_template.replace("{{MSG}}", message.content),
+                                        unsafe_allow_html=True)
+                        else:
+                            st.markdown(bot_template.replace("{{MSG}}", message.content),
+                                        unsafe_allow_html=True)
+
+
+if __name__ == "__main__":
+    main()

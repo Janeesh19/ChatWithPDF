@@ -64,28 +64,9 @@ def message_to_dict(msg):
     return {"role": role, "content": msg.content}
 
 def main():
-    # Set up the page title and inject CSS.
+    # Set up the page title and apply custom CSS.
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
-    
-    # Inject custom CSS to fix the chat input at the bottom.
-    st.markdown("""
-    <style>
-    .fixed-footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: white;
-        padding: 10px;
-        border-top: 1px solid #ddd;
-        z-index: 100;
-    }
-    .main-content {
-        margin-bottom: 80px;  /* Adjust this based on the height of the footer */
-    }
-    </style>
-    """, unsafe_allow_html=True)
     
     # Initialize session state variables.
     if "conversation" not in st.session_state:
@@ -95,7 +76,7 @@ def main():
         st.session_state.messages = []
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
-    
+
     # ─── SIDEBAR: Setup, Model Selection, and PDF Upload ──────────────────────────────
     with st.sidebar:
         st.header("Setup")
@@ -121,9 +102,11 @@ def main():
                     st.rerun()
             else:
                 st.warning("Please upload at least one PDF.")
+        # Button to clear the archived chat history.
         if st.button("Clear Chat History"):
             st.session_state.chat_history_archive = []
             st.rerun()
+        # Display archived conversations.
         if st.session_state.chat_history_archive:
             st.subheader("Chat History Archive")
             for idx, conv in enumerate(st.session_state.chat_history_archive):
@@ -131,28 +114,28 @@ def main():
                     for msg in conv:
                         msg_dict = message_to_dict(msg)
                         st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-    
+
     st.title("Chat with your assistant")
     
-    # ─── MAIN CHAT AREA ─────────────────────────────────────────────────────────────
-    with st.container():
-        st.markdown('<div class="main-content">', unsafe_allow_html=True)
-        if hasattr(st, "chat_message"):
-            for msg in st.session_state.messages:
-                msg_dict = message_to_dict(msg)
-                with st.chat_message(msg_dict["role"]):
-                    st.markdown(msg_dict["content"])
-        else:
-            for msg in st.session_state.messages:
-                msg_dict = message_to_dict(msg)
-                st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # ─── FIXED FOOTER: CHAT INPUT AREA WITH CLEAR CHAT BUTTON ──────────────────────
-    st.markdown('<div class="fixed-footer">', unsafe_allow_html=True)
+    # ─── DISPLAY PREVIOUS MESSAGES ─────────────────────────────────────────────
+    # Use st.chat_message if available (Streamlit's new chat UI), else fallback.
+    if hasattr(st, "chat_message"):
+        for msg in st.session_state.messages:
+            msg_dict = message_to_dict(msg)
+            with st.chat_message(msg_dict["role"]):
+                st.markdown(msg_dict["content"])
+    else:
+        for msg in st.session_state.messages:
+            msg_dict = message_to_dict(msg)
+            st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
+
+    # ─── CHAT INPUT AREA WITH CLEAR BUTTON NEXT TO IT ─────────────────────────
     cols = st.columns([4, 1])
     with cols[0]:
-        user_input = st.text_input("Type your message here", key="input_bottom")
+        if hasattr(st, "chat_input"):
+            user_input = st.chat_input("Type your message here")
+        else:
+            user_input = st.text_input("Type your message here")
     with cols[1]:
         if st.button("Clear Chat", key="clear_chat_btn"):
             # Archive the current conversation if it exists.
@@ -162,8 +145,7 @@ def main():
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    
+
     # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -186,8 +168,6 @@ def main():
                 "role": "assistant",
                 "content": "Please upload your documents and click 'Add Data' to start."
             })
-        # Clear the input field (by resetting its key value if needed).
-        st.session_state.input_bottom = ""
         st.rerun()
 
 if __name__ == "__main__":

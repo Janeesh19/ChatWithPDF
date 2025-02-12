@@ -58,59 +58,50 @@ def main():
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+    if "chat_history_archive" not in st.session_state:
+        st.session_state.chat_history_archive = []
 
     st.header("Chat with PDF :books:")
 
-    # Create a dedicated container for the chat messages.
-    chat_container = st.container()
-
-    # The text input appears at the top of the main page.
+    # Text input for the question
     user_question = st.text_input("Ask a question about your documents:")
 
+    # Clear Chat button placed right next to the input.
+    if st.button("Clear Chat"):
+        # Archive the current conversation (if any)
+        if st.session_state.chat_history:
+            st.session_state.chat_history_archive.append(st.session_state.chat_history)
+        st.session_state.chat_history = []
+        if st.session_state.conversation is not None:
+            st.session_state.conversation.memory.chat_history = []
+        st.experimental_rerun()  # Rerun to update the UI
+
+    # Container for chat messages (displayed just below the input)
+    chat_container = st.container()
+
+    # If a new question is submitted, get a response and display the conversation
     if user_question:
-        # Get the response from the conversation chain.
         response = st.session_state.conversation({"question": user_question})
         st.session_state.chat_history = response["chat_history"]
 
-        # Update the chat_container so that the conversation appears directly below the input box.
         with chat_container:
-            # Iterate through the conversation history and display messages.
-            # Even-indexed messages are assumed to be from the user, odd-indexed from the bot.
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
-                    st.markdown(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
+                    st.markdown(user_template.replace("{{MSG}}", message.content),
+                                unsafe_allow_html=True)
                 else:
-                    st.markdown(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
+                    st.markdown(bot_template.replace("{{MSG}}", message.content),
+                                unsafe_allow_html=True)
 
-    # Sidebar with model selection and PDF file uploader remains unchanged.
+    # Sidebar for model selection, file uploading, and chat history archive
     with st.sidebar:
         model_options = {
             "GPT-4": "gpt-4",
-            "GPT-4-o": "gpt-4",       # Adjust if you have different settings for '4o'
-            "GPT-4-mini": "gpt-4-mini", # Note: ensure this model is available as intended
+            "GPT-4-o": "gpt-4",        # Adjust if you have different settings for '4o'
+            "GPT-4-mini": "gpt-4-mini",  # Note: ensure this model is available as intended
             "GPT-3.5 Turbo": "gpt-3.5-turbo"
         }
         model_choice = st.selectbox("Select GPT Model", list(model_options.keys()))
         st.subheader("Your documents")
         pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Add Data'", accept_multiple_files=True
-        )
-        if st.button("Add Data"):
-            with st.spinner("Adding Data..."):
-                # Extract text from PDFs
-                raw_text = get_pdf_text(pdf_docs)
-
-                # Split the text into chunks
-                text_chunks = get_text_chunks(raw_text)
-
-                # Create the vector store
-                vectorstore = get_vectorstore(text_chunks)
-
-                # Initialise the conversation chain using the selected GPT model
-                st.session_state.conversation = get_conversation_chain(
-                    vectorstore, model_options[model_choice]
-                )
-
-
-if __name__ == "__main__":
-    main()
+    

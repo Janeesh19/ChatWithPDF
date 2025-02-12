@@ -92,13 +92,6 @@ def main():
     # ─── MAIN CHAT INTERFACE ──────────────────────────────────────────────────────────────
     st.title("Chat with your assistant")
     
-    # Clear Chat button in the main area to reset the current conversation.
-    if st.button("Clear Chat"):
-        st.session_state.messages = []
-        if st.session_state.conversation is not None:
-            st.session_state.conversation.memory.clear()
-        st.rerun()
-    
     # Display previous conversation messages.
     # If available, use the new st.chat_message component for a ChatGPT-like UI.
     if hasattr(st, "chat_message"):
@@ -106,16 +99,33 @@ def main():
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
     else:
-        # Fallback if the new chat components are not available.
+        # Fallback display if the new chat components are not available.
         for msg in st.session_state.messages:
             st.markdown(f"**{msg['role'].capitalize()}:** {msg['content']}")
     
-    # Chat input area.
+    # Chat input area with a Clear Chat button placed either next to or below the input.
     if hasattr(st, "chat_input"):
+        # Use the new chat_input if available.
         user_input = st.chat_input("Type your message here")
+        # Place the Clear Chat button immediately below the input.
+        if st.button("Clear Chat", key="clear_chat_below"):
+            st.session_state.messages = []
+            if st.session_state.conversation is not None:
+                st.session_state.conversation.memory.clear()
+            st.rerun()
     else:
-        user_input = st.text_input("Type your message here")
+        # Fallback: arrange input and clear button side-by-side using columns.
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            user_input = st.text_input("Type your message here")
+        with col2:
+            if st.button("Clear Chat"):
+                st.session_state.messages = []
+                if st.session_state.conversation is not None:
+                    st.session_state.conversation.memory.clear()
+                st.rerun()
     
+    # Process the user input.
     if user_input:
         # Append the user's message.
         st.session_state.messages.append({"role": "user", "content": user_input})

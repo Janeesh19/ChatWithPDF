@@ -7,7 +7,7 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from htmlTemplates import css  # Make sure you have this file with your CSS styles
+from htmlTemplates import css  # Ensure you have your CSS file with your styles
 
 # Set your OpenAI API key from Streamlit secrets.
 os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
@@ -50,15 +50,15 @@ def main():
     # Set up the page title and inject CSS.
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
-
+    
     # Initialise session state variables.
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        # messages will be a list of dictionaries: {"role": "user"/"assistant", "content": "…"}
+        # Each message is a dictionary: {"role": "user" or "assistant", "content": "…"}
         st.session_state.messages = []
-
-    # ─── SIDEBAR: Setup, File Upload, and Chat History Clear ─────────────────────────
+    
+    # ─── SIDEBAR: Setup, File Upload, Model Selection, & Clear Chat History ──────────────
     with st.sidebar:
         st.header("Setup")
         model_options = {
@@ -85,11 +85,20 @@ def main():
                 st.warning("Please upload at least one PDF.")
         if st.button("Clear Chat History"):
             st.session_state.messages = []
+            if st.session_state.conversation is not None:
+                st.session_state.conversation.memory.clear()
             st.rerun()
-
-    # ─── MAIN CHAT INTERFACE ─────────────────────────────────────────────────────────
+    
+    # ─── MAIN CHAT INTERFACE ──────────────────────────────────────────────────────────────
     st.title("Chat with your assistant")
-
+    
+    # Clear Chat button in the main area to reset the current conversation.
+    if st.button("Clear Chat"):
+        st.session_state.messages = []
+        if st.session_state.conversation is not None:
+            st.session_state.conversation.memory.clear()
+        st.rerun()
+    
     # Display previous conversation messages.
     # If available, use the new st.chat_message component for a ChatGPT-like UI.
     if hasattr(st, "chat_message"):
@@ -100,7 +109,7 @@ def main():
         # Fallback if the new chat components are not available.
         for msg in st.session_state.messages:
             st.markdown(f"**{msg['role'].capitalize()}:** {msg['content']}")
-
+    
     # Chat input area.
     if hasattr(st, "chat_input"):
         user_input = st.chat_input("Type your message here")
@@ -110,10 +119,8 @@ def main():
     if user_input:
         # Append the user's message.
         st.session_state.messages.append({"role": "user", "content": user_input})
-        # Check if the conversation chain has been set up.
         if st.session_state.conversation is not None:
             with st.spinner("Assistant is typing..."):
-                # Call the conversation chain with the new question.
                 response = st.session_state.conversation({"question": user_input})
                 # Retrieve the latest assistant response.
                 if response.get("chat_history"):
@@ -132,7 +139,7 @@ def main():
                 "role": "assistant",
                 "content": "Please upload your documents and click 'Add Data' to start."
             })
-        st.rerun()  # Refresh the UI to display the new messages.
+        st.rerun()
 
 if __name__ == "__main__":
     main()

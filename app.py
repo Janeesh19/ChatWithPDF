@@ -72,15 +72,15 @@ def message_to_dict(msg):
 
 def main():
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
-
-    # Inject custom CSS to reserve bottom space and fix the chat input area.
+    
+    # Inject custom CSS to reserve bottom space and fix the footer.
     st.markdown("""
     <style>
-      /* Increase bottom padding for the main container */
-      .reportview-container .main .block-container {
-          padding-bottom: 140px;
+      /* Reserve space at the bottom so that the fixed footer doesn't cover content */
+      .main-container {
+          padding-bottom: 120px;
       }
-      /* Fixed footer styling */
+      /* Fixed footer for the chat input area */
       .fixed-footer {
           position: fixed;
           left: 0;
@@ -89,31 +89,22 @@ def main():
           background-color: #f8f9fa;
           padding: 10px;
           border-top: 1px solid #ddd;
-          z-index: 100;
+          z-index: 1000;
       }
     </style>
     """, unsafe_allow_html=True)
-
-    # Inject JavaScript to scroll to the bottom on page load.
-    st.markdown("""
-    <script>
-      window.onload = function() {
-        window.scrollTo(0, document.body.scrollHeight);
-      }
-    </script>
-    """, unsafe_allow_html=True)
-
+    
     # Optionally include external CSS.
     st.markdown(css, unsafe_allow_html=True)
-
+    
     # Initialize session state variables.
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        st.session_state.messages = []  # List of {"role": "user"/"assistant", "content": "..."}
+        st.session_state.messages = []  # List of dicts: {"role": "user"/"assistant", "content": "…"}
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
-
+    
     # ------------------------------------------------------------------------------
     # Sidebar: Model Selection, PDF Upload, and Chat History Archive
     # ------------------------------------------------------------------------------
@@ -150,11 +141,13 @@ def main():
                     for msg in conv:
                         msg_dict = message_to_dict(msg)
                         st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-
-    # ------------------------------------------------------------------------------
-    # Main Chat Interface: Display Messages
-    # ------------------------------------------------------------------------------
+    
     st.title("Chat with your assistant")
+    
+    # ------------------------------------------------------------------------------
+    # Main Chat Interface (with bottom padding)
+    # ------------------------------------------------------------------------------
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
     if hasattr(st, "chat_message"):
         for msg in st.session_state.messages:
             msg_dict = message_to_dict(msg)
@@ -164,14 +157,15 @@ def main():
         for msg in st.session_state.messages:
             msg_dict = message_to_dict(msg)
             st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
-
+    st.markdown('</div>', unsafe_allow_html=True)
+    
     # ------------------------------------------------------------------------------
     # Fixed Footer: Chat Input Area and Clear Chat Button
     # ------------------------------------------------------------------------------
     st.markdown('<div class="fixed-footer">', unsafe_allow_html=True)
     cols = st.columns([4, 1])
     with cols[0]:
-        # Use st.chat_input if available; otherwise fallback to st.text_input.
+        # Use st.chat_input if available; otherwise, fallback to st.text_input.
         if hasattr(st, "chat_input"):
             user_input = st.chat_input("Type your message here")
         else:
@@ -185,7 +179,7 @@ def main():
                 st.session_state.conversation.memory.clear()
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
+    
     # ------------------------------------------------------------------------------
     # Process User Input
     # ------------------------------------------------------------------------------

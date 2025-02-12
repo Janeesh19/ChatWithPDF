@@ -63,31 +63,31 @@ def main():
 
     st.header("Chat with PDF :books:")
 
-    # Text input for user question
-    user_question = st.text_input("Ask a question about your documents:")
+    # Text input for the user question, using a key so its value can be cleared.
+    user_question = st.text_input("Ask a question about your documents:", key="user_question")
 
     # Clear Chat button placed next to the input.
     if st.button("Clear Chat"):
-        # Archive the current conversation (if any)
+        # Archive the current conversation (if any) in the sidebar.
         if st.session_state.chat_history:
             st.session_state.chat_history_archive.append(st.session_state.chat_history)
         st.session_state.chat_history = []
         if st.session_state.conversation is not None:
             # Clear the conversation memory using the clear() method.
             st.session_state.conversation.memory.clear()
-        st.rerun()  # Rerun to update the UI
+        # Clear the text input field.
+        st.session_state.user_question = ""
+        st.rerun()  # Rerun the app to update the UI
 
     # Container for chat messages (displayed just below the input)
     chat_container = st.container()
 
-    # If a new question is submitted, get a response and display the conversation
+    # If the text input isn't empty, get a response and display the conversation.
     if user_question:
         response = st.session_state.conversation({"question": user_question})
         st.session_state.chat_history = response["chat_history"]
 
         with chat_container:
-            # Iterate through the conversation history and display messages.
-            # Even-indexed messages are assumed to be from the user, odd-indexed from the bot.
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
                     st.markdown(user_template.replace("{{MSG}}", message.content),
@@ -96,7 +96,7 @@ def main():
                     st.markdown(bot_template.replace("{{MSG}}", message.content),
                                 unsafe_allow_html=True)
 
-    # Sidebar for model selection, file uploading, and chat history archive
+    # Sidebar for model selection, file uploading, and chat history archive.
     with st.sidebar:
         model_options = {
             "GPT-4": "gpt-4",
@@ -114,20 +114,17 @@ def main():
             with st.spinner("Adding Data..."):
                 # Extract text from PDFs
                 raw_text = get_pdf_text(pdf_docs)
-
                 # Split the text into chunks
                 text_chunks = get_text_chunks(raw_text)
-
                 # Create the vector store
                 vectorstore = get_vectorstore(text_chunks)
-
                 # Initialise the conversation chain using the selected GPT model
                 st.session_state.conversation = get_conversation_chain(
                     vectorstore, model_options[model_choice]
                 )
                 st.rerun()
 
-        # Display the archived chat history in the sidebar
+        # Display the archived chat history in the sidebar.
         if st.session_state.chat_history_archive:
             st.subheader("Chat History Archive")
             for idx, conv in enumerate(st.session_state.chat_history_archive):

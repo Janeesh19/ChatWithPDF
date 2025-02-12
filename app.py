@@ -46,7 +46,7 @@ def get_conversation_chain(vectorstore, model_name):
 
 def main():
     # Update the page title and icon.
-    st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
+    st.set_page_config(page_title="Chat with your Assistant", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
 
     # Initialise session state variables if not already set.

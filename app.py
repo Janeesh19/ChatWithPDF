@@ -55,44 +55,38 @@ def main():
         st.session_state.chat_history = []
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
-    # Initialise a counter for the text input key.
     if "text_input_key" not in st.session_state:
         st.session_state.text_input_key = 0
 
     st.header("Chat with PDF :books:")
 
-    # Place the Clear Chat button and text input in a horizontal layout.
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        if st.button("Clear Chat"):
-            # Archive the current conversation (if any)
-            if st.session_state.chat_history:
-                st.session_state.chat_history_archive.append(st.session_state.chat_history)
-            st.session_state.chat_history = []
-            if st.session_state.conversation is not None:
-                # Clear the conversation memory using the clear() method.
-                st.session_state.conversation.memory.clear()
-            # Increment the text input key so a new widget is created.
-            st.session_state.text_input_key += 1
-            st.rerun()
-    with col2:
-        # Use a dynamic key for the text input so that it resets when the counter changes.
-        user_question = st.text_input(
-            "Ask a question about your documents:",
-            key=f"user_question_{st.session_state.text_input_key}"
-        )
+    # Text input for the user's question with a dynamic key.
+    user_question = st.text_input(
+        "Ask a question about your documents:",
+        key=f"user_question_{st.session_state.text_input_key}"
+    )
 
-    # Container for chat messages (displayed just below the input)
+    # Clear Chat button placed immediately below the input.
+    if st.button("Clear Chat"):
+        # Archive the current conversation if there is any.
+        if st.session_state.chat_history:
+            st.session_state.chat_history_archive.append(st.session_state.chat_history)
+        st.session_state.chat_history = []
+        if st.session_state.conversation is not None:
+            st.session_state.conversation.memory.clear()
+        # Increment the key to create a new text input widget.
+        st.session_state.text_input_key += 1
+        st.rerun()
+
+    # Container for chat messages (displayed below the Clear Chat button).
     chat_container = st.container()
 
-    # If a new question is submitted, get a response and display the conversation.
+    # If a new question is provided, process it and display the conversation.
     if user_question:
         response = st.session_state.conversation({"question": user_question})
         st.session_state.chat_history = response["chat_history"]
 
         with chat_container:
-            # Iterate through the conversation history and display messages.
-            # Even-indexed messages are from the user; odd-indexed messages are from the bot.
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
                     st.markdown(user_template.replace("{{MSG}}", message.content),
@@ -117,13 +111,13 @@ def main():
         )
         if st.button("Add Data"):
             with st.spinner("Adding Data..."):
-                # Extract text from PDFs
+                # Extract text from PDFs.
                 raw_text = get_pdf_text(pdf_docs)
-                # Split the text into chunks
+                # Split the text into chunks.
                 text_chunks = get_text_chunks(raw_text)
-                # Create the vector store
+                # Create the vector store.
                 vectorstore = get_vectorstore(text_chunks)
-                # Initialise the conversation chain using the selected GPT model
+                # Initialise the conversation chain using the selected GPT model.
                 st.session_state.conversation = get_conversation_chain(
                     vectorstore, model_options[model_choice]
                 )

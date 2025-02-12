@@ -75,7 +75,7 @@ def main():
         if st.session_state.conversation is not None:
             # Clear the conversation memory using the clear() method.
             st.session_state.conversation.memory.clear()
-        st.experimental_rerun()  # Rerun to update the UI
+        st.rerun()  # Rerun to update the UI
 
     # Container for chat messages (displayed just below the input)
     chat_container = st.container()
@@ -125,7 +125,7 @@ def main():
                 st.session_state.conversation = get_conversation_chain(
                     vectorstore, model_options[model_choice]
                 )
-                st.experimental_rerun()
+                st.rerun()
 
         # Display the archived chat history in the sidebar
         if st.session_state.chat_history_archive:

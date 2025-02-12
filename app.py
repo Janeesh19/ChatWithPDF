@@ -75,7 +75,7 @@ def main():
     if user_question:
         handle_userinput(user_question)
 
-    with st.sidebar:
+     with st.sidebar:
 
          model_options = {
             "GPT-4": "gpt-4",

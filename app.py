@@ -27,14 +27,16 @@ def get_text_chunks(text):
     )
     chunks = text_splitter.split_text(text)
     return chunks
+
+
 def get_vectorstore(text_chunks):
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
 
-def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI()
+def get_conversation_chain(vectorstore, model_name):
+    llm = ChatOpenAI(model_name=model_name)
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm, retriever=vectorstore.as_retriever(), memory=memory
@@ -54,8 +56,10 @@ def handle_userinput(user_question):
             )
         else:
             st.write(
-                bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True
+                bot_template.replace("{{MSG}}", message.content),
+                unsafe_allow_html=True,
             )
+
 
 def main():
     st.set_page_config(page_title="Chat with PDF :books:", page_icon=":books:")
@@ -76,20 +80,30 @@ def main():
         pdf_docs = st.file_uploader(
             "Upload your PDFs here and click on 'Add Data'", accept_multiple_files=True
         )
+        
+        # Add a select box for choosing the GPT model
+        model_options = {
+            "GPT-4": "gpt-4",
+            "GPT-4-o": "gpt-4",       # Adjust if you have different settings for '4o'
+            "GPT-4-mini": "gpt-4-mini", # Note: ensure this model is available as intended
+            "GPT-3.5 Turbo": "gpt-3.5-turbo"
+        }
+        model_choice = st.selectbox("Select GPT Model", list(model_options.keys()))
+        
         if st.button("Add Data"):
             with st.spinner("Adding Data..."):
-                # get pdf text
+                # Extract text from PDFs
                 raw_text = get_pdf_text(pdf_docs)
 
-                # get the text chunks
+                # Split the text into chunks
                 text_chunks = get_text_chunks(raw_text)
 
-                # create vector store
+                # Create the vector store
                 vectorstore = get_vectorstore(text_chunks)
 
-                # create conversation chain
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                # Initialise the conversation chain using the selected GPT model
+                st.session_state.conversation = get_conversation_chain(vectorstore, model_options[model_choice])
 
 
 if __name__ == "__main__":
-    main()            
+    main()

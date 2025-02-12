@@ -61,7 +61,8 @@ def handle_userinput(user_question):
             </div>
             """
     chat_container += "</div>"
-    st.write(chat_container, unsafe_allow_html=True)
+    st.markdown(chat_container, unsafe_allow_html=True)
+
 
 # Main function
 def main():

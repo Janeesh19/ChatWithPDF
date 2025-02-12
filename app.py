@@ -76,20 +76,18 @@ def main():
         handle_userinput(user_question)
 
     with st.sidebar:
-        st.subheader("Your documents")
-        pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Add Data'", accept_multiple_files=True
-        )
-        
-        # Add a select box for choosing the GPT model
-        model_options = {
+
+         model_options = {
             "GPT-4": "gpt-4",
             "GPT-4-o": "gpt-4",       # Adjust if you have different settings for '4o'
             "GPT-4-mini": "gpt-4-mini", # Note: ensure this model is available as intended
             "GPT-3.5 Turbo": "gpt-3.5-turbo"
         }
         model_choice = st.selectbox("Select GPT Model", list(model_options.keys()))
-        
+        st.subheader("Your documents")
+        pdf_docs = st.file_uploader(
+            "Upload your PDFs here and click on 'Add Data'", accept_multiple_files=True
+        )
         if st.button("Add Data"):
             with st.spinner("Adding Data..."):
                 # Extract text from PDFs

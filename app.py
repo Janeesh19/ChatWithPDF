@@ -129,7 +129,6 @@ def main():
             msg_dict = message_to_dict(msg)
             st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
 
-    # ─── CHAT INPUT AREA WITH CLEAR BUTTON NEXT TO IT ─────────────────────────
     cols = st.columns([4, 1])
     with cols[0]:
         if hasattr(st, "chat_input"):
@@ -145,7 +144,7 @@ def main():
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-
+    
     # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})

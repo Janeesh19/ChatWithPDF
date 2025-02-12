@@ -46,6 +46,24 @@ def get_conversation_chain(vectorstore, model_name):
         memory=memory
     )
 
+def message_to_dict(msg):
+    """
+    Convert a message object to a dictionary.
+    If msg is already a dict, return it.
+    Otherwise, infer the role from its class name.
+    """
+    if isinstance(msg, dict):
+        return msg
+    # For HumanMessage and AIMessage, we use the class name to decide the role.
+    class_name = msg.__class__.__name__
+    if class_name == "HumanMessage":
+        role = "user"
+    elif class_name == "AIMessage":
+        role = "assistant"
+    else:
+        role = "unknown"
+    return {"role": role, "content": msg.content}
+
 def main():
     # Set up the page title and inject CSS.
     st.set_page_config(page_title="Chat with your assistant", page_icon=":robot:")
@@ -55,7 +73,7 @@ def main():
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "messages" not in st.session_state:
-        # Each message is a dict: {"role": "user" or "assistant", "content": "…"}
+        # Each message will be stored as a dictionary with keys: "role" and "content".
         st.session_state.messages = []
     if "chat_history_archive" not in st.session_state:
         st.session_state.chat_history_archive = []
@@ -93,22 +111,24 @@ def main():
             for idx, conv in enumerate(st.session_state.chat_history_archive):
                 with st.expander(f"Conversation {idx + 1}"):
                     for msg in conv:
-                        st.markdown(f"**{msg['role'].capitalize()}:** {msg['content']}")
-
+                        msg_dict = message_to_dict(msg)
+                        st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
+    
     st.title("Chat with your assistant")
     
     # ─── DISPLAY PREVIOUS MESSAGES ─────────────────────────────────────────────
     # Use st.chat_message if available; otherwise fallback to markdown.
     if hasattr(st, "chat_message"):
         for msg in st.session_state.messages:
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
+            msg_dict = message_to_dict(msg)
+            with st.chat_message(msg_dict["role"]):
+                st.markdown(msg_dict["content"])
     else:
         for msg in st.session_state.messages:
-            st.markdown(f"**{msg['role'].capitalize()}:** {msg['content']}")
-
-    # ─── CHAT INPUT AREA WITH CLEAR BUTTON TO THE RIGHT ─────────────────────────
-    # Arrange the input box and Clear Chat button in two columns.
+            msg_dict = message_to_dict(msg)
+            st.markdown(f"**{msg_dict['role'].capitalize()}:** {msg_dict['content']}")
+    
+    # ─── CHAT INPUT AREA WITH CLEAR BUTTON NEXT TO IT ─────────────────────────
     cols = st.columns([4, 1])
     with cols[0]:
         # Use st.chat_input if available; otherwise fallback to st.text_input.
@@ -120,13 +140,12 @@ def main():
         if st.button("Clear Chat", key="clear_chat_btn"):
             # Archive the current conversation if it exists.
             if st.session_state.messages:
-                # Append a copy of the current messages list.
                 st.session_state.chat_history_archive.append(st.session_state.messages.copy())
             st.session_state.messages = []
             if st.session_state.conversation is not None:
                 st.session_state.conversation.memory.clear()
             st.rerun()
-
+    
     # ─── PROCESS USER INPUT ─────────────────────────────────────────────────────
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -135,6 +154,7 @@ def main():
                 response = st.session_state.conversation({"question": user_input})
                 if response.get("chat_history"):
                     latest_message = response["chat_history"][-1]
+                    # Append as a dictionary.
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": latest_message.content
